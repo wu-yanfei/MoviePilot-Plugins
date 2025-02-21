@@ -120,6 +120,7 @@ class AutoSoftLink(_PluginBase):
         # item = event.event_data
         # if not item:
         #     return
+        logger.info("检测到转移完成")
 
         # 媒体信息
         item_media: MediaInfo = item.get("mediainfo")
