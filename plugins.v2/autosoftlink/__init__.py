@@ -132,7 +132,7 @@ class AutoSoftLink(_PluginBase):
         # 文件清单
         item_file_list = item_transfer.file_list_new
 
-        logger.info(f"转移后文件路径：{item_dest}")
+        logger.info("检测到转移完成")
 
 
 
