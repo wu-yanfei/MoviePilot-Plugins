@@ -3,12 +3,12 @@
         "name": "自动软链接",
         "description": "整理入库时生成软链接",
         "labels": "",
-        "version": "0.1",
+        "version": "1.0",
         "icon": "softlink.png",
         "author": "wu-yanfei",
         "level": 2,
         "history": {
-            "v0.1": "开发中"
+            "v1.0": "开发中"
         }
     }
 }
