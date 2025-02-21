@@ -12,11 +12,11 @@ from app.schemas.types import EventType, MediaType
 
 class AutoSoftLink(_PluginBase):
     # 插件名称
-    plugin_name = "AutoSoftLink"
+    plugin_name = "自动软链接"
     # 插件描述
     plugin_desc = "整理入库时生成软链接。"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/thsrite/MoviePilot-Plugins/main/icons/softlink.png"
+    plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
     # 插件版本
     plugin_version = "1.0"
     # 插件作者
@@ -35,6 +35,7 @@ class AutoSoftLink(_PluginBase):
     _softlink_path = None
 
     def init_plugin(self, config: dict = None):
+        logger.info(f"插件初始化")
         if config:
             self._enabled = config.get("enabled")
             self._softlink_path = config.get("softlink_path")
