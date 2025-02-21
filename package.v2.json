@@ -2,7 +2,7 @@
     "AutoSoftLink": {
         "name": "自动软链接",
         "description": "整理入库时生成软链接",
-        "labels": "",
+        "labels": "文件管理",
         "version": "1.0",
         "icon": "https://raw.githubusercontent.com/thsrite/MoviePilot-Plugins/main/icons/softlink.png",
         "author": "wu-yanfei",
