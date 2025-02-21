@@ -4,7 +4,7 @@
         "description": "整理入库时生成软链接",
         "labels": "",
         "version": "1.0",
-        "icon": "softlink.png",
+        "icon": "https://raw.githubusercontent.com/thsrite/MoviePilot-Plugins/main/icons/softlink.png",
         "author": "wu-yanfei",
         "level": 2,
         "history": {
