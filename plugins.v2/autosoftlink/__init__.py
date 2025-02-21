@@ -16,7 +16,7 @@ class AutoSoftLink(_PluginBase):
     # 插件描述
     plugin_desc = "整理入库时生成软链接。"
     # 插件图标
-    plugin_icon = "softlink.png"
+    plugin_icon = "https://raw.githubusercontent.com/thsrite/MoviePilot-Plugins/main/icons/softlink.png"
     # 插件版本
     plugin_version = "1.0"
     # 插件作者
