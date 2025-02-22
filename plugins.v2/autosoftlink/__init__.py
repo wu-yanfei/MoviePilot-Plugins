@@ -110,7 +110,7 @@ class AutoSoftLink(_PluginBase):
     def stop_service(self):
         pass
 
-    @eventmanager.register(EventType.CommandExcute)
+    @eventmanager.register(EventType.TransferComplete)
     def download(self, event: Event):
         """
         调用AutoSoftLink生成软链接
