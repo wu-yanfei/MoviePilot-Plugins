@@ -149,7 +149,7 @@ class AutoSoftLink(_PluginBase):
         try:
             # 目标路径
             target_path = transferinfo.target_diritem.path
-            target_name = transferinfo.target_diritem.name
+            target_name = transferinfo.target_diritem.url
             logger.info(f"目标路径：{target_path}{target_name}")
         except Exception as e:
             logger.error(f"获取目标路径失败")
