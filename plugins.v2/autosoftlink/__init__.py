@@ -140,6 +140,8 @@ class AutoSoftLink(_PluginBase):
         #     return
         logger.info(f"开始软链接")
 
+        event_info: dict = event.event_data
+
         # 入库数据
         transferinfo: TransferInfo = event_info.get("transferinfo")
         mediainfo: MediaInfo = event_info.get("mediainfo")
