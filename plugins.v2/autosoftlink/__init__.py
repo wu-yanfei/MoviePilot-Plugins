@@ -133,27 +133,38 @@ class AutoSoftLink(_PluginBase):
         """
         调用AutoSoftLink生成软链接
         """
-        # if not self._enabled or not self._softlink_path:
-        #     return
-        # item = event.event_data
-        # if not item:
-        #     return
-        logger.info(f"开始软链接")
-
+        if not self._enabled or not self._media_path or not self._softlink_path:
+            return
         event_info: dict = event.event_data
+        if not event_info:
+            return
+
+        logger.info(f"开始软链接")
 
         # 入库数据
         transferinfo: TransferInfo = event_info.get("transferinfo")
-        mediainfo: MediaInfo = event_info.get("mediainfo")
 
-        try:
-            # 目标路径
-            target_path = transferinfo.target_item.path
-            logger.info(f"目标路径5：{target_path}")
-        except Exception as e:
-            logger.error(f"获取目标路径失败")
+        # 媒体库文件路径
+        file_path = transferinfo.target_item.path
+        logger.info(f"文件路径6：{file_path}")
 
-        logger.info(f"完成软链接")
+        if file_path.startswith(self._media_path):
+            # 获取相对路径
+            relative_path = os.path.relpath(file_path, self._media_path)
+            # 构造软链接的目标路径
+            symlink_target = os.path.join(self._softlink_path, relative_path)
+            
+            # 确保目标路径的父目录存在
+            os.makedirs(os.path.dirname(symlink_target), exist_ok=True)
+            
+            # 创建软链接
+            if not os.path.exists(symlink_target):
+                os.symlink(file_path, symlink_target)
+                print(f"软链接创建成功: {symlink_target} -> {file_path}")
+            else:
+                print(f"软链接创建失败: {symlink_target}")
+        else:
+            print(f"参数填写错误：未匹配")
 
     def stop_service(self):
         """
