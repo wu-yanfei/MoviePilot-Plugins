@@ -155,7 +155,7 @@ class AutoSoftLink(_PluginBase):
         """
         # if not self._enabledor or not self._alist_path or not self._cd2_path or not self._softlink_path:
         #     return
-        # event_info: dict = event.event_data
+        event_info: dict = event.event_data
         # if not event_info:
         #     return
 
@@ -181,7 +181,7 @@ class AutoSoftLink(_PluginBase):
             else:
                 logger.info(f"生成软链接失败: {symlink_target}")
         else:
-            print("文件匹配失败，请检查参数")
+            logger.info("文件匹配失败，请检查参数")
 
     def stop_service(self):
         """
