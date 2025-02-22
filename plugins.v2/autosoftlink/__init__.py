@@ -32,6 +32,7 @@ class AutoSoftLink(_PluginBase):
 
     # 私有属性
     _enabled = False
+    _media_path = None
     _softlink_path = None
 
     def init_plugin(self, config: dict = None):
@@ -86,6 +87,22 @@ class AutoSoftLink(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
+                                            'model': 'media_path',
+                                            'label': '媒体库路径'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
                                             'model': 'softlink_path',
                                             'label': '软链接路径'
                                         }
@@ -98,6 +115,7 @@ class AutoSoftLink(_PluginBase):
             }
         ], {
             "enabled": False,
+            "media_path": "",
             "softlink_path": ""
         }
 
@@ -120,20 +138,30 @@ class AutoSoftLink(_PluginBase):
         # item = event.event_data
         # if not item:
         #     return
-        logger.info("检测到转移完成")
+        logger.info(f"开始软链接")
 
-        # 媒体信息
-        item_media: MediaInfo = item.get("mediainfo")
-        # 转移信息
-        item_transfer: TransferInfo = item.get("transferinfo")
-        # 类型
-        item_type = item_media.type
-        # 目的路径
-        item_dest: FileItem = item_transfer.target_diritem
-        # 文件清单
-        item_file_list = item_transfer.file_list_new
+        # 入库数据
+        transferinfo: TransferInfo = event_info.get("transferinfo")
+        mediainfo: MediaInfo = event_info.get("mediainfo")
+        
+        try:
+            # 目标路径
+            target_path = Path(transferinfo.target_diritem.path)
+            logger.info(f"1目标路径：{target_path}")
+        except Exception as e:
+            logger.error(f"获取目标路径失败")
 
-        logger.info("检测到转移完成")
+        try:
+            # 目标路径
+            target_path = transferinfo.target_diritem.path
+            logger.info(f"2目标路径：{target_path}")
+        except Exception as e:
+            logger.error(f"获取目标路径失败")
 
+        logger.info(f"完成软链接")
 
-
+    def stop_service(self):
+        """
+        退出插件
+        """
+        pass
