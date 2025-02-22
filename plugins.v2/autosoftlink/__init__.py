@@ -145,18 +145,12 @@ class AutoSoftLink(_PluginBase):
         # 入库数据
         transferinfo: TransferInfo = event_info.get("transferinfo")
         mediainfo: MediaInfo = event_info.get("mediainfo")
-        
-        try:
-            # 目标路径
-            target_path = Path(transferinfo.target_diritem.path)
-            logger.info(f"1目标路径：{target_path}")
-        except Exception as e:
-            logger.error(f"获取目标路径失败")
 
         try:
             # 目标路径
             target_path = transferinfo.target_diritem.path
-            logger.info(f"2目标路径：{target_path}")
+            target_name = transferinfo.target_diritem.name
+            logger.info(f"目标路径：{target_path}{target_name}")
         except Exception as e:
             logger.error(f"获取目标路径失败")
 
