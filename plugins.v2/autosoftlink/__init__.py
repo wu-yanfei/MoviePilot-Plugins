@@ -153,7 +153,7 @@ class AutoSoftLink(_PluginBase):
         """
         调用AutoSoftLink生成软链接
         """
-        if not self._enabledor or not self._alist_path or not self._cd2_path or not self._softlink_path:
+        if not self._enabled or not self._alist_path or not self._cd2_path or not self._softlink_path:
             return
         event_info: dict = event.event_data
         if not event_info:
