@@ -197,7 +197,7 @@ class AutoSoftLink(_PluginBase):
             os.makedirs(os.path.dirname(symlink_target), exist_ok=True)
 
             # 模拟刷新
-            os.listdir(dir_pos.path.dirname(new_file_path)ath)
+            os.listdir(os.path.dirname(new_file_path))
             time.sleep(10)
 
             if not os.path.exists(symlink_target):
