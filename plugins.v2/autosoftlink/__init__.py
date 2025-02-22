@@ -41,6 +41,7 @@ class AutoSoftLink(_PluginBase):
         if config:
             self._enabled = config.get("enabled")
             self._alist_path = config.get("alist_path")
+            self._cd2_path = config.get("cd2_path")
             self._softlink_path = config.get("softlink_path")
 
     @staticmethod
