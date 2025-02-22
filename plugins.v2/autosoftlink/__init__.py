@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from typing import List, Tuple, Dict, Any
 
@@ -32,6 +33,7 @@ class AutoSoftLink(_PluginBase):
 
     # 私有属性
     _enabled = False
+    _delay = None
     _alist_path = None
     _cd2_path = None
     _softlink_path = None
@@ -40,6 +42,7 @@ class AutoSoftLink(_PluginBase):
         logger.info(f"插件初始化")
         if config:
             self._enabled = config.get("enabled")
+            self._delay = config.get("delay")
             self._alist_path = config.get("alist_path")
             self._cd2_path = config.get("cd2_path")
             self._softlink_path = config.get("softlink_path")
@@ -71,6 +74,22 @@ class AutoSoftLink(_PluginBase):
                                         'props': {
                                             'model': 'enabled',
                                             'label': '启用插件',
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'delay',
+                                            'label': '延迟时间'
                                         }
                                     }
                                 ]
@@ -134,6 +153,7 @@ class AutoSoftLink(_PluginBase):
             }
         ], {
             "enabled": False,
+            "delay": "",
             "alist_path": "",
             "cd2_path": "",
             "softlink_path": ""
@@ -153,7 +173,7 @@ class AutoSoftLink(_PluginBase):
         """
         调用AutoSoftLink生成软链接
         """
-        if not self._enabled or not self._alist_path or not self._cd2_path or not self._softlink_path:
+        if not self._enabled or not self._alist_path or not self._cd2_path or not self._softlink_path or not self._delay:
             return
         event_info: dict = event.event_data
         if not event_info:
@@ -164,7 +184,8 @@ class AutoSoftLink(_PluginBase):
 
         # 媒体库Alist文件路径
         file_path = transferinfo.target_item.path
-        logger.info(f"开始处理：{file_path}")
+        logger.info(f"{self._delay}秒后开始处理：{file_path}")
+        time.sleep(int(self._delay))
 
         if file_path.startswith(self._alist_path):
             new_file_path = file_path.replace(self._alist_path, self._cd2_path, 1)
