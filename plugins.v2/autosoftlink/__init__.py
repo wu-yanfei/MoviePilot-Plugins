@@ -153,22 +153,18 @@ class AutoSoftLink(_PluginBase):
         """
         调用AutoSoftLink生成软链接
         """
-        logger.info(f"alist路径：{self._alist_path}")
-        logger.info(f"cd2路径：{self._cd2_path}")
-        logger.info(f"软链接路径：{self._softlink_path}")
-
-        # if not self._enabledor or not self._alist_path or not self._cd2_path or not self._softlink_path:
-        #     return
+        if not self._enabledor or not self._alist_path or not self._cd2_path or not self._softlink_path:
+            return
         event_info: dict = event.event_data
-        # if not event_info:
-        #     return
+        if not event_info:
+            return
 
         # 入库数据
         transferinfo: TransferInfo = event_info.get("transferinfo")
 
         # 媒体库Alist文件路径
         file_path = transferinfo.target_item.path
-        logger.info(f"新增文件：{file_path}")
+        logger.info(f"开始处理：{file_path}")
 
         if file_path.startswith(self._alist_path):
             new_file_path = file_path.replace(self._alist_path, self._cd2_path, 1)
