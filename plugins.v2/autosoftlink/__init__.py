@@ -172,8 +172,8 @@ class AutoSoftLink(_PluginBase):
         # 将目标文件路径转为绝对路径
         target_path = os.path.abspath(new_file_path)
         current_path = os.path.abspath(self._cd2_path)
-        logger.info(f"文件路径："{target_path})
-        logger.info(f"cd2路径："{current_path})
+        logger.info(f"文件路径：{target_path}")
+        logger.info(f"cd2路径：{current_path}")
              
         # 获取目标文件路径的各个部分
         path_parts = target_path[len(current_path):].lstrip(os.sep).split(os.sep)
