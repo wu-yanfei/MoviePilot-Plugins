@@ -213,8 +213,9 @@ class AutoSoftLink(_PluginBase):
 
         # 媒体库Alist文件路径
         file_path = transferinfo.target_item.path
-        logger.info(f"{self._delay}秒后开始处理：{file_path}")
+        logger.info(f"{self._delay}秒后处理：{file_path}")
         time.sleep(int(self._delay))
+        logger.info(f"{self._delay}开始处理：{file_path}")
 
         if file_path.startswith(self._alist_path):
             new_file_path = file_path.replace(self._alist_path, self._cd2_path, 1)
