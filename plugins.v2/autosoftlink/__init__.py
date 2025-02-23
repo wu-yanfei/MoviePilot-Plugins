@@ -231,10 +231,10 @@ class AutoSoftLink(_PluginBase):
             logger.info(f"测试结束")
 
             # 模拟刷新
-            if not find_file(new_file_path):
-                logger.info(f"入库文件在cd2路径刷新失败，请手动尝试")
-                return
-            time.sleep(10)
+            # if not find_file(new_file_path):
+            #     logger.info(f"入库文件在cd2路径刷新失败，请手动尝试")
+            #     return
+            # time.sleep(10)
 
             if not os.path.exists(symlink_target):
                 logger.info(f"开始生成软链接")
