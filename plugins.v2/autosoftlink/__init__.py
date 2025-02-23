@@ -169,36 +169,33 @@ class AutoSoftLink(_PluginBase):
         pass
 
     def find_file(self, new_file_path):
-        # 获取目标文件的绝对路径
+        # 将目标文件路径转为绝对路径
         target_path = os.path.abspath(new_file_path)
-        
-        # 从 cd2_path 开始
         current_path = os.path.abspath(self._cd2_path)
+             
+        # 获取目标文件路径的各个部分
+        path_parts = target_path[len(current_path):].lstrip(os.sep).split(os.sep)
         
-        # 遍历每一级子目录
-        while current_path != target_path:
-            # 获取当前路径下的所有文件和目录
+        # 依次进入每一级目录
+        for part in path_parts[:-1]:  # 处理到倒数第二层
+            time.sleep(2)
+            current_path = os.path.join(current_path, part)
+            
+            # 刷新当前目录的内容
             try:
-                dirs = os.listdir(current_path)
+                os.listdir(current_path)
             except FileNotFoundError:
                 return None
             
-            # 检查每个子目录或文件
-            found = False
-            for d in dirs:
-                full_path = os.path.join(current_path, d)
-                if os.path.isdir(full_path):  # 如果是目录，继续往下查找
-                    current_path = full_path
-                    found = True
-                    break
-                elif full_path == target_path:  # 如果找到目标文件
-                    return full_path
-            
-            # 如果没有找到文件，退出循环
-            if not found:
-                break
+            if not os.path.isdir(current_path):
+                return None
         
-        return None
+        # 现在 current_path 是目标目录，检查目标文件
+        target_file = os.path.join(current_path, path_parts[-1])
+        if os.path.isfile(target_file):
+            return target_file
+        else:
+            return None
 
     @eventmanager.register(EventType.TransferComplete)
     def download(self, event: Event):
