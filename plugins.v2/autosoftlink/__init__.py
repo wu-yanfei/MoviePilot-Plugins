@@ -168,6 +168,38 @@ class AutoSoftLink(_PluginBase):
     def stop_service(self):
         pass
 
+    def find_file(self, new_file_path):
+        # 获取目标文件的绝对路径
+        target_path = os.path.abspath(new_file_path)
+        
+        # 从 cd2_path 开始
+        current_path = os.path.abspath(self._cd2_path)
+        
+        # 遍历每一级子目录
+        while current_path != target_path:
+            # 获取当前路径下的所有文件和目录
+            try:
+                dirs = os.listdir(current_path)
+            except FileNotFoundError:
+                return None
+            
+            # 检查每个子目录或文件
+            found = False
+            for d in dirs:
+                full_path = os.path.join(current_path, d)
+                if os.path.isdir(full_path):  # 如果是目录，继续往下查找
+                    current_path = full_path
+                    found = True
+                    break
+                elif full_path == target_path:  # 如果找到目标文件
+                    return full_path
+            
+            # 如果没有找到文件，退出循环
+            if not found:
+                break
+        
+        return None
+
     @eventmanager.register(EventType.TransferComplete)
     def download(self, event: Event):
         """
@@ -197,7 +229,9 @@ class AutoSoftLink(_PluginBase):
             os.makedirs(os.path.dirname(symlink_target), exist_ok=True)
 
             # 模拟刷新
-            os.listdir(os.path.dirname(new_file_path))
+            if not find_file(new_file_path):
+                logger.info(f"入库文件在cd2路径刷新失败，请手动尝试")
+                return
             time.sleep(10)
 
             if not os.path.exists(symlink_target):
