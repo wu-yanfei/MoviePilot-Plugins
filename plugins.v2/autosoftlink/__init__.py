@@ -215,9 +215,10 @@ class AutoSoftLink(_PluginBase):
         file_path = transferinfo.target_item.path
         logger.info(f"{self._delay}秒后处理：{file_path}")
         time.sleep(int(self._delay))
-        logger.info(f"{self._delay}开始处理：{file_path}")
+        logger.info(f"开始处理：{file_path}")
 
         if file_path.startswith(self._alist_path):
+            logger.info(f"测试开始")
             new_file_path = file_path.replace(self._alist_path, self._cd2_path, 1)
             
             relative_path = os.path.relpath(file_path, self._alist_path)
@@ -225,6 +226,7 @@ class AutoSoftLink(_PluginBase):
             symlink_target = os.path.join(self._softlink_path, relative_path)
 
             os.makedirs(os.path.dirname(symlink_target), exist_ok=True)
+            logger.info(f"测试结束")
 
             # 模拟刷新
             if not find_file(new_file_path):
