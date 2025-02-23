@@ -220,7 +220,6 @@ class AutoSoftLink(_PluginBase):
         logger.info(f"开始处理：{file_path}")
 
         if file_path.startswith(self._alist_path):
-            logger.info(f"测试开始")
             new_file_path = file_path.replace(self._alist_path, self._cd2_path, 1)
             
             relative_path = os.path.relpath(file_path, self._alist_path)
@@ -228,16 +227,14 @@ class AutoSoftLink(_PluginBase):
             symlink_target = os.path.join(self._softlink_path, relative_path)
 
             os.makedirs(os.path.dirname(symlink_target), exist_ok=True)
-            logger.info(f"测试结束")
 
             # 模拟刷新
-            # if not find_file(new_file_path):
-            #     logger.info(f"入库文件在cd2路径刷新失败，请手动尝试")
-            #     return
-            # time.sleep(10)
+            if not self.find_file(new_file_path):
+                logger.info(f"入库文件在cd2路径刷新失败，请手动尝试")
+                return
+            time.sleep(10)
 
             if not os.path.exists(symlink_target):
-                logger.info(f"开始生成软链接")
                 os.symlink(new_file_path, symlink_target)
                 logger.info(f"生成软链接成功: {symlink_target} -> {new_file_path}")
             else:
