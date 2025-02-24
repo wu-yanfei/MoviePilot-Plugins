@@ -15,7 +15,7 @@ class AutoSoftLink(_PluginBase):
     # 插件名称
     plugin_name = "自动软链接"
     # 插件描述
-    plugin_desc = "整理入库时生成软链接。"
+    plugin_desc = "云盘整理入库时生成软链接。"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
     # 插件版本
@@ -66,7 +66,7 @@ class AutoSoftLink(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 4
                                 },
                                 'content': [
                                     {
@@ -82,7 +82,7 @@ class AutoSoftLink(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 8
                                 },
                                 'content': [
                                     {
@@ -148,7 +148,49 @@ class AutoSoftLink(_PluginBase):
                                 ]
                             }
                         ]
-                    }
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VAlert',
+                                        'props': {
+                                            'type': 'info',
+                                            'variant': 'tonal',
+                                            'text': '延迟时间需大于cd2缓存时间。'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VAlert',
+                                        'props': {
+                                            'type': 'info',
+                                            'variant': 'tonal',
+                                            'text': 'alist路径、cd2路径以及软链接路径均写到媒体库层，比如/115/media/电影、/115/media/电视剧等，则填写/115/media。'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
                 ]
             }
         ], {
@@ -238,7 +280,7 @@ class AutoSoftLink(_PluginBase):
             else:
                 logger.info(f"生成软链接失败: {symlink_target}")
         else:
-            logger.info("文件匹配失败，请检查参数")
+            logger.info(f"文件匹配失败，请检查参数")
 
     def stop_service(self):
         """
