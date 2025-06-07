@@ -256,6 +256,36 @@ class SyncSoftLink(_PluginBase):
     def get_page(self) -> List[dict]:
         pass
 
+    def _find_file(self, target_path):
+        # Ensure the input is an absolute path
+        target_path = os.path.abspath(target_path)
+        
+        # Split the path into parts
+        path_parts = target_path.split(os.sep)
+        
+        # Start from the root directory
+        current_path = os.sep
+        
+        # Traverse directories from root to the parent of the target file
+        for part in path_parts[1:-1]:  # Skip empty root and last component
+            current_path = os.path.join(current_path, part)
+            
+            # Refresh directory contents
+            try:
+                time.sleep(2)
+                os.listdir(current_path)
+            except FileNotFoundError:
+                return None
+                
+            if not os.path.isdir(current_path):
+                return None
+        
+        # Check for the target file in the final directory
+        target_file = os.path.join(current_path, path_parts[-1])
+        if os.path.isfile(target_file):
+            return target_file
+        return None
+
     def _run_command(self, command_args):
         """执行外部命令并返回其输出和返回码"""
         try:
@@ -410,8 +440,13 @@ class SyncSoftLink(_PluginBase):
                         if os.path.exists(link_full_path) or os.path.islink(link_full_path):
                             logger.info(f"  警告: 路径 {link_full_path} 已存在，跳过创建。")
                         else:
-                            os.symlink(link_target_full_path, link_full_path)
-                            logger.info(f"  已创建软链接: {link_full_path} -> {link_target_full_path}")
+                            # 模拟刷新
+                            if not self._find_file(link_target_full_path):
+                                logger.info(f"入库文件在挂载路径刷新失败，请手动尝试")
+                            else:
+                                time.sleep(10)
+                                os.symlink(link_target_full_path, link_full_path)
+                                logger.info(f"  已创建软链接: {link_full_path} -> {link_target_full_path}")
                     except Exception as e:
                         logger.info(f"  错误: 创建软链接 {link_full_path} 失败: {e}")
                 else:
