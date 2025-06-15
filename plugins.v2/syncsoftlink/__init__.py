@@ -209,7 +209,8 @@ class SyncSoftLink(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '暂无。'
+                                            'text': '例如：115网盘文件夹media_center，本地挂载/media_center/CloudNAS/WebDAV/115_share/media_center，软连接：/115_share/media_center。\
+                                                则_fuse_path_prefix = /media_center/CloudNAS/WebDAV/115_share，_softlink_path_prefix = /115_share'
                                         }
                                     }
                                 ]
