@@ -15,12 +15,17 @@ from app.schemas import TransferInfo, FileItem
 from app.schemas.types import EventType, MediaType
 from apscheduler.triggers.cron import CronTrigger
 
+from p115client import P115Client
+from p115client.tool.export_dir import (
+    export_dir_parse_iter,
+    parse_export_dir_as_path_iter,
+)
 
 class SyncSoftLink(_PluginBase):
     # 插件名称
     plugin_name = "同步软链接"
     # 插件描述
-    plugin_desc = "利用rclone定时同步云盘和本地软连接，删除失效的软连接，添加新增的软连接。"
+    plugin_desc = "对接115网盘，删除失效的软连接，添加新增的软连接。"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
     # 插件版本
@@ -39,10 +44,10 @@ class SyncSoftLink(_PluginBase):
     # 私有属性
     _enabled = False
     _cron = None
-    _rclone_exe = None  # "rclone"  # 如果rclone不在系统PATH中，请指定完整路径
-    _remote_path = None  # "MP:/115_share/media_center"
-    _local_path = None  # "/115_share/media_center" # 本地操作的基础路径
-    _link_target_prefix = None  # "/media_center/CloudNAS/WebDAV" # 新软链接的目标前缀
+    _115_cookie = None
+    _115_path = None
+    _fuse_path_prefix = None
+    _softlink_path_prefix = None
 
     _dry_run = False  # 设置为 False 来实际执行操作，True 只打印将要执行的操作
 
@@ -51,10 +56,10 @@ class SyncSoftLink(_PluginBase):
         if config:
             self._enabled = config.get("enabled")
             self._cron = config.get("cron")
-            self._rclone_exe = config.get("rclone_exe")
-            self._remote_path = config.get("remote_path")
-            self._local_path = config.get("local_path")
-            self._link_target_prefix = config.get("link_target_prefix")
+            self._115_cookie = config.get("115_cookie")
+            self._115_path = config.get("115_path")
+            self._fuse_path_prefix = config.get("fuse_path_prefix")
+            self._softlink_path_prefix = config.get("softlink_path_prefix")
 
     @staticmethod
     def get_command() -> List[Dict[str, Any]]:
@@ -66,13 +71,6 @@ class SyncSoftLink(_PluginBase):
     def get_service(self) -> List[Dict[str, Any]]:
         """
         注册插件公共服务
-        [{
-            "id": "服务ID",
-            "name": "服务名称",
-            "trigger": "触发器：cron/interval/date/CronTrigger.from_crontab()",
-            "func": self.xxx,
-            "kwargs": {} # 定时器参数
-        }]
         """
         if self._enabled and self._cron:
             return [
@@ -80,7 +78,7 @@ class SyncSoftLink(_PluginBase):
                     "id": "SyncSoftLink",
                     "name": "软连接同步服务",
                     "trigger": CronTrigger.from_crontab(self._cron),
-                    "func": self._main,
+                    "func": self.__main,
                     "kwargs": {}
                 }
             ]
@@ -136,8 +134,8 @@ class SyncSoftLink(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
-                                            'model': 'rclone_exe',
-                                            'label': 'rclone执行程序位置'
+                                            'model': '115_cookie',
+                                            'label': 'UID=...; CID=...; SEID=...'
                                         }
                                     }
                                 ]
@@ -157,8 +155,8 @@ class SyncSoftLink(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
-                                            'model': 'remote_path',
-                                            'label': '远程目录'
+                                            'model': '115_path',
+                                            'label': '115文件夹CID'
                                         }
                                     }
                                 ]
@@ -173,8 +171,8 @@ class SyncSoftLink(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
-                                            'model': 'local_path',
-                                            'label': '本地目录'
+                                            'model': 'fuse_path_prefix',
+                                            'label': '挂载路径前缀'
                                         }
                                     }
                                 ]
@@ -189,29 +187,8 @@ class SyncSoftLink(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
-                                            'model': 'link_target_prefix',
-                                            'label': '软连接前缀'
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {
-                                    'cols': 12,
-                                },
-                                'content': [
-                                    {
-                                        'component': 'VAlert',
-                                        'props': {
-                                            'type': 'info',
-                                            'variant': 'tonal',
-                                            'text': '暂无。'
+                                            'model': 'softlink_path_prefix',
+                                            'label': '软连接路径前缀'
                                         }
                                     }
                                 ]
@@ -244,10 +221,10 @@ class SyncSoftLink(_PluginBase):
         ], {
             "enabled": False,
             "cron": "0 9 * * *",
-            "rclone_exe": "rclone",
-            "remote_path": "",
-            "local_path": "",
-            "link_target_prefix": ""
+            "115_cookie": "",
+            "115_path": "",
+            "fuse_path_prefix": "",
+            "softlink_path_prefix": ""
         }
 
     def get_state(self) -> bool:
@@ -256,205 +233,137 @@ class SyncSoftLink(_PluginBase):
     def get_page(self) -> List[dict]:
         pass
 
-    def _find_file(self, target_path):
-        # Ensure the input is an absolute path
-        target_path = os.path.abspath(target_path)
+    def local_dir_as_path_iter(self, root_path: str):
+        """
+        遍历本地文件夹，生成每个文件和子文件夹的完整路径字符串。
         
-        # Split the path into parts
-        path_parts = target_path.split(os.sep)
+        :param root_path: 本地文件夹的根路径。
+        """
+        root_path = os.path.normpath(root_path)
+        yield root_path
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            for dirname in dirnames:
+                yield os.path.join(dirpath, dirname)
+            for filename in filenames:
+                yield os.path.join(dirpath, filename)
+
+    def simulate_refresh(self, mount_path: str):
+        """
+        逐层访问挂载路径以模拟刷新。
         
-        # Start from the root directory
-        current_path = os.sep
-        
-        # Traverse directories from root to the parent of the target file
-        for part in path_parts[1:-1]:  # Skip empty root and last component
+        :param mount_path: 需要刷新的挂载路径。
+        """
+        path_parts = Path(mount_path).parts
+        current_path = path_parts[0]
+        for part in path_parts[1:]:
             current_path = os.path.join(current_path, part)
-            
-            # Refresh directory contents
-            try:
-                time.sleep(2)
-                os.listdir(current_path)
-            except FileNotFoundError:
-                return None
-                
-            if not os.path.isdir(current_path):
-                return None
-        
-        # Check for the target file in the final directory
-        target_file = os.path.join(current_path, path_parts[-1])
-        if os.path.isfile(target_file):
-            return target_file
-        return None
+            if os.path.exists(current_path):
+                try:
+                    os.listdir(current_path)
+                    logger.info(f"刷新路径: {current_path}")
+                except Exception as e:
+                    logger.warning(f"刷新路径 {current_path} 失败: {e}")
+            else:
+                break
 
-    def _run_command(self, command_args):
-        """执行外部命令并返回其输出和返回码"""
+    def __main(self):
+        """
+        主逻辑：同步115网盘目录与本地软连接目录。
+        """
+        if not all([self._115_cookie, self._115_path, self._fuse_path_prefix, self._softlink_path_prefix]):
+            logger.error("配置项缺失，无法执行同步")
+            return
+
+        # 初始化115客户端
         try:
-            process = subprocess.Popen(command_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                       encoding='utf-8')
-            stdout, stderr = process.communicate()
-            return stdout, stderr, process.returncode
-        except FileNotFoundError:
-            logger.info(f"错误：找不到命令 '{command_args[0]}'. 请确保它已安装并在PATH中。")
-            sys.exit(1)
+            client = P115Client(self._115_cookie)
         except Exception as e:
-            logger.info(f"执行命令 '{' '.join(command_args)}' 时发生错误: {e}")
-            return None, str(e), 1
+            logger.error(f"初始化115客户端失败: {e}")
+            return
 
-    def _parse_rclone_lsjson_output(self, json_str: str) -> set:
-        """
-        解析 'rclone lsjson -R' 的JSON输出。
-        返回一个包含相对路径的集合，目录以 '/' 结尾。
-        """
-        items = set()
-        if not json_str:
-            return items
+        # 获取115网盘目录树
+        logger.info("开始获取115网盘目录树...")
         try:
-            file_list = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            logger.error(f"无法解析 rclone lsjson 输出: {e}")
-            logger.error(f"接收到的输出: {json_str[:500]}...")  # Log the beginning of the problematic string
-            return items
+            path_iterator = export_dir_parse_iter(
+                client=client,
+                export_file_ids=int(self._115_path),
+                target_pid=0,
+                parse_iter=parse_export_dir_as_path_iter,
+                show_clock=True
+            )
+            cloud_paths = set(path_iterator)
+            logger.info(f"获取到 {len(cloud_paths)} 个云端项目")
+        except Exception as e:
+            logger.error(f"获取115网盘目录树失败: {e}")
+            return
 
-        for item in file_list:
-            item_path = item.get("Path")
-            if not item_path:
+        # 获取本地软连接目录树
+        softlink_root = os.path.join(self._softlink_path_prefix, "media_center")
+        logger.info("开始获取本地软连接目录树...")
+        local_paths = set(self.local_dir_as_path_iter(softlink_root))
+        logger.info(f"获取到 {len(local_paths)} 个本地项目")
+
+        # 规范化路径为相对路径
+        cloud_root = min(cloud_paths, key=len)  # 云端根路径，例如 /media_center
+        # 转换为相对路径集合
+        cloud_rel_paths = {os.path.relpath(p, cloud_root) if p != cloud_root else "." for p in cloud_paths}
+        local_rel_paths = {os.path.relpath(p, softlink_root) if p != softlink_root else "." for p in local_paths}
+
+        # 计算需要添加和删除的相对路径
+        to_add_rel = cloud_rel_paths - local_rel_paths
+        to_remove_rel = local_rel_paths - cloud_rel_paths
+
+        # 删除多余的软连接或目录
+        for rel_path in sorted(to_remove_rel, reverse=True):  # 从深到浅删除
+            path = softlink_root if rel_path == "." else os.path.join(softlink_root, rel_path)
+            if self._dry_run:
+                logger.info(f"[Dry Run] 将删除: {path}")
+            else:
+                try:
+                    if os.path.islink(path) or os.path.isfile(path):
+                        os.remove(path)
+                        logger.info(f"删除文件/软连接: {path}")
+                    elif os.path.isdir(path):
+                        shutil.rmtree(path)
+                        logger.info(f"删除目录: {path}")
+                except Exception as e:
+                    logger.error(f"删除 {path} 失败: {e}")
+
+        # 添加缺失的目录或软连接
+        for rel_path in sorted(to_add_rel):  # 从浅到深创建
+            cloud_path = cloud_root if rel_path == "." else os.path.join(cloud_root, rel_path)
+            softlink_path = softlink_root if rel_path == "." else os.path.join(softlink_root, rel_path)
+            mount_path = os.path.join(self._fuse_path_prefix, "media_center", rel_path if rel_path != "." else "")
+
+            if self._dry_run:
+                if "." not in os.path.basename(cloud_path):
+                    logger.info(f"[Dry Run] 将创建目录: {softlink_path}")
+                else:
+                    logger.info(f"[Dry Run] 将创建软连接: {softlink_path} -> {mount_path}")
                 continue
 
-            # 检查并去除 .rclonelink 后缀
-            if item_path.endswith('.rclonelink'):
-                item_path = item_path[:-len('.rclonelink')]
+            # 模拟刷新挂载路径
+            self.simulate_refresh(os.path.dirname(mount_path))
 
-            # 为目录添加末尾的斜杠
-            if item.get("IsDir"):
-                item_path += '/'
+            try:
+                # 创建父目录
+                os.makedirs(os.path.dirname(softlink_path) if rel_path != "." else softlink_root, exist_ok=True)
 
-            items.add(item_path)
-
-        return items
-
-    def _get_rclone_lsjson_items(self, rclone_target_path, is_remote=True):
-        """使用 rclone lsjson 获取目录内容（相对路径集合）。"""
-        logger.info(f"正在获取 {'远程' if is_remote else '本地'} 目录内容: {rclone_target_path} ... (使用 lsjson)")
-        # 使用 -R 进行递归列出
-        cmd = [self._rclone_exe, "--tpslimit", "3", "lsjson", "-R", rclone_target_path, "-l", "--fast-list"]
-        stdout, stderr, returncode = self._run_command(cmd)
-
-        if returncode != 0:
-            logger.info(f"错误：获取 {'远程' if is_remote else '本地'} 目录内容 '{rclone_target_path}' 失败。")
-            logger.info(f"Rclone Stderr:\n{stderr}")
-            sys.exit(1)
-        logger.info(f"{'远程' if is_remote else '本地'} 目录内容获取成功。")
-        return self._parse_rclone_lsjson_output(stdout)
-
-    # --- 主逻辑 ---
-    def _main(self):
-        # 确保本地基础路径存在，如果不存在则创建它
-        if not os.path.exists(self._local_path):
-            if not self._dry_run:
-                try:
-                    os.makedirs(self._local_path)
-                    logger.info(f"已创建本地基础目录: {self._local_path}")
-                except Exception as e:
-                    logger.info(f"错误: 创建本地基础目录 {self._local_path} 失败: {e}")
-                    sys.exit(1)
-            else:
-                logger.info(f"DRY RUN: (如果不存在，将创建本地基础目录: {self._local_path})")
-
-        logger.info("\n开始同步过程...")
-        if self._dry_run:
-            logger.info("！！！当前为 DRY RUN 模式，不会执行任何实际的文件系统更改。！！！")
-
-        # 1. 获取远程目录内容
-        remote_items = self._get_rclone_lsjson_items(self._remote_path, is_remote=True)
-
-        # 2. 获取本地目录内容
-        local_items = self._get_rclone_lsjson_items(self._local_path, is_remote=False)
-
-        logger.info(f"远程条目数: {len(remote_items)}")
-        logger.info(f"本地条目数: {len(local_items)}")
-
-        # 3. 找出本地多余的（远程没有的）
-        items_to_delete_locally = local_items - remote_items
-        # 为了安全删除，从深到浅排序
-        sorted_items_to_delete = sorted(list(items_to_delete_locally), key=len, reverse=True)
-
-        # 4. 找出本地没有的（远程有的）
-        items_to_create_locally = remote_items - local_items
-        # 为了安全创建，从浅到深排序
-        sorted_items_to_create = sorted(list(items_to_create_locally), key=len)
-
-        # 5. 执行删除操作
-        logger.info("\n--- 开始删除本地多余的文件和文件夹 ---")
-        if not sorted_items_to_delete:
-            logger.info("没有需要删除的本地条目。")
-        for item_rel_path in sorted_items_to_delete:
-            local_item_full_path = os.path.join(self._local_path, item_rel_path.lstrip('/'))
-            logger.info(f"准备删除: {local_item_full_path}")
-            if not self._dry_run:
-                try:
-                    if os.path.islink(local_item_full_path) or os.path.isfile(local_item_full_path):
-                        os.unlink(local_item_full_path)
-                        logger.info(f"  已删除链接或文件: {local_item_full_path}")
-                    elif os.path.isdir(local_item_full_path):
-                        shutil.rmtree(local_item_full_path)
-                        logger.info(f"  已删除目录: {local_item_full_path}")
-                    else:
-                        logger.info(f"  警告: 尝试删除时未找到 {local_item_full_path} (可能已被父目录删除)")
-                except Exception as e:
-                    logger.info(f"  错误: 删除 {local_item_full_path} 失败: {e}")
-            else:
-                logger.info(f"  DRY RUN: 将删除 {local_item_full_path}")
-
-        # 6. 执行新增操作 (创建软链接或真实目录)
-        logger.info("\n--- 开始新增本地没有的文件和文件夹 ---")
-        if not sorted_items_to_create:
-            logger.info("没有需要新增的本地条目。")
-        for item_rel_path in sorted_items_to_create:
-            if item_rel_path.endswith('/'):
-                # 这是一个目录，创建真实的本地目录
-                local_dir_path = os.path.join(self._local_path, item_rel_path.rstrip('/'))
-                logger.info(f"准备创建真实目录: {local_dir_path}")
-                if not self._dry_run:
-                    try:
-                        os.makedirs(local_dir_path, exist_ok=True)
-                        logger.info(f"  已创建真实目录: {local_dir_path}")
-                    except Exception as e:
-                        logger.info(f"  错误: 创建真实目录 {local_dir_path} 失败: {e}")
+                # 判断是否为文件（基于是否有 . 后缀）
+                if "." not in os.path.basename(cloud_path):
+                    # 创建普通目录
+                    os.makedirs(softlink_path, exist_ok=True)
+                    logger.info(f"创建目录: {softlink_path}")
                 else:
-                    logger.info(f"  DRY RUN: 将创建真实目录 {local_dir_path}")
-            else:
-                # 这是一个文件，创建软链接
-                link_name_rel = item_rel_path.rstrip('/')
-                link_full_path = os.path.join(self._local_path, link_name_rel)
+                    # 创建软连接
+                    if os.path.exists(softlink_path):
+                        os.remove(softlink_path)
+                    os.symlink(mount_path, softlink_path)
+                    logger.info(f"创建软连接: {softlink_path} -> {mount_path}")
+            except Exception as e:
+                logger.error(f"处理 {softlink_path} 失败: {e}")
 
-                link_target_full_path = os.path.join(self._link_target_prefix, self._local_path.lstrip('/'),
-                                                     link_name_rel)
-
-                logger.info(f"准备创建软链接: {link_full_path} -> {link_target_full_path}")
-
-                if not self._dry_run:
-                    try:
-                        link_parent_dir = os.path.dirname(link_full_path)
-                        os.makedirs(link_parent_dir, exist_ok=True)
-
-                        if os.path.exists(link_full_path) or os.path.islink(link_full_path):
-                            logger.info(f"  警告: 路径 {link_full_path} 已存在，跳过创建。")
-                        else:
-                            # 模拟刷新
-                            if not self._find_file(link_target_full_path):
-                                logger.info(f"入库文件在挂载路径刷新失败，请手动尝试")
-                            else:
-                                time.sleep(10)
-                                os.symlink(link_target_full_path, link_full_path)
-                                logger.info(f"  已创建软链接: {link_full_path} -> {link_target_full_path}")
-                    except Exception as e:
-                        logger.info(f"  错误: 创建软链接 {link_full_path} 失败: {e}")
-                else:
-                    logger.info(f"  DRY RUN: 将创建软链接 {link_full_path} -> {link_target_full_path}")
-
-        if self._dry_run:
-            logger.info("\n！！！DRY RUN 结束。没有实际更改文件系统。！！！")
-        logger.info("\n同步过程结束。")
+        logger.info("软连接同步完成")
 
     def stop_service(self):
         """
