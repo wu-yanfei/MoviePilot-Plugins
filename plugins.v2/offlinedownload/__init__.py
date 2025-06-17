@@ -9,7 +9,7 @@ from app.schemas.types import EventType
 
 from p115client import P115Client
 
-class SyncSoftLink(_PluginBase):
+class OfflineDownload(_PluginBase):
     # 插件名称
     plugin_name = "115离线下载"
     # 插件描述
@@ -159,35 +159,59 @@ class SyncSoftLink(_PluginBase):
         """
         处理 /offline_download 命令，触发115网盘离线下载
         """
+        event_data = event.event_data
+        if not event_data or event_data.get("action") != "offline_download":
+            return
+
         if not self._enabled:
-            logger.error("插件未启用")
-            event.event_data["result"] = {"success": False, "message": "插件未启用"}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="插件未启用",
+                text="请在插件设置中启用插件",
+                userid=event.event_data.get("user")
+            )
             return
 
         if not all([self._115_cookie, self._115_path]):
-            logger.error("配置项缺失，无法执行离线下载")
-            event.event_data["result"] = {"success": False, "message": "配置项缺失"}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="配置项缺失",
+                text="请检查 115 Cookie 和文件夹 CID 是否已配置",
+                userid=event.event_data.get("user")
+            )
             return
 
         # 获取命令参数（URL）
-        command_args = event.event_data.get("args", "")
+        command_args = event_data.get("args", "")
         if not command_args:
-            logger.error("未提供下载URL")
-            event.event_data["result"] = {"success": False, "message": "未提供下载URL"}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="未提供下载URL",
+                text="请在命令中提供有效的下载 URL",
+                userid=event.event_data.get("user")
+            )
             return
 
         url = command_args.strip()
         if not url.startswith(("http://", "https://", "ftp://", "magnet:", "ed2k://")):
-            logger.error(f"无效的URL: {url}")
-            event.event_data["result"] = {"success": False, "message": f"无效的URL: {url}"}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="无效的URL",
+                text=f"提供的 URL 不支持: {url}",
+                userid=event.event_data.get("user")
+            )
             return
 
         # 初始化115客户端
         try:
             client = P115Client(self._115_cookie)
         except Exception as e:
-            logger.error(f"初始化115客户端失败: {e}")
-            event.event_data["result"] = {"success": False, "message": f"初始化115客户端失败: {e}"}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="初始化115客户端失败",
+                text=f"错误详情: {str(e)}",
+                userid=event.event_data.get("user")
+            )
             return
 
         # 准备离线下载任务
@@ -199,11 +223,19 @@ class SyncSoftLink(_PluginBase):
 
         try:
             result = client.offline_add_url(payload, use_web_api=False)
-            logger.info(f"离线下载任务添加成功: {url}, 结果: {json.dumps(result, ensure_ascii=False)}")
-            event.event_data["result"] = {"success": True, "message": "离线下载任务添加成功", "data": result}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="离线下载任务添加成功",
+                text=f"URL: {url}\n结果: {json.dumps(result, ensure_ascii=False)}",
+                userid=event.event_data.get("user")
+            )
         except Exception as e:
-            logger.error(f"添加离线下载任务失败: {e}")
-            event.event_data["result"] = {"success": False, "message": f"添加离线下载任务失败: {e}"}
+            self.post_message(
+                channel=event.event_data.get("channel"),
+                title="添加离线下载任务失败",
+                text=f"URL: {url}\n错误详情: {str(e)}",
+                userid=event.event_data.get("user")
+            )
 
     def stop_service(self):
         """
