@@ -22,5 +22,17 @@
         "history": {
             "v1.0": "开发中"
         }
+    },
+    "OfflineDownload": {
+        "name": "115离线下载",
+        "description": "通过命令触发115网盘的离线下载任务。",
+        "labels": "云盘",
+        "version": "1.0",
+        "icon": "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png",
+        "author": "wu-yanfei",
+        "level": 1,
+        "history": {
+            "v1.0": "开发中"
+        }
     }
 }
