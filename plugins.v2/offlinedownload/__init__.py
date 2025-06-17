@@ -182,7 +182,7 @@ class OfflineDownload(_PluginBase):
             return
 
         # 获取命令参数（URL）
-        command_args = event_data.get("args", "")
+        command_args = event_data.get("arg_str")
         if not command_args:
             self.post_message(
                 channel=event.event_data.get("channel"),
