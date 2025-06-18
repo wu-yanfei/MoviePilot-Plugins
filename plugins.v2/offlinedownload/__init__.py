@@ -41,19 +41,8 @@ class OfflineDownload(_PluginBase):
             self._115_cookie = config.get("115_cookie")
             self._115_path = config.get("115_path")
 
-    def get_command(self) -> List[Dict[str, Any]]:
-        """
-        返回插件支持的命令列表
-        """
-        return [{
-            "cmd": "/offline_download",
-            "event": EventType.PluginAction,
-            "desc": "115离线下载",
-            "category": "",
-            "data": {
-                "action": "offline_download"
-            }
-        }]
+    def get_command() -> List[Dict[str, Any]]:
+        pass
 
     def get_api(self) -> List[Dict[str, Any]]:
         pass
@@ -133,7 +122,7 @@ class OfflineDownload(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '输入 /offline_download <URL> 触发离线下载任务'
+                                            'text': '输入 URL 触发离线下载任务'
                                         }
                                     }
                                 ]
@@ -154,50 +143,30 @@ class OfflineDownload(_PluginBase):
     def get_page(self) -> List[dict]:
         pass
 
-    @eventmanager.register(EventType.PluginAction)
+    @eventmanager.register(EventType.UserMessage)
     def offline_download(self, event: Event):
         """
-        处理 /offline_download 命令，触发115网盘离线下载
+        触发115网盘离线下载
         """
-        event_data = event.event_data
-        if not event_data or event_data.get("action") != "offline_download":
-            return
 
         if not self._enabled:
-            self.post_message(
-                channel=event.event_data.get("channel"),
-                title="插件未启用",
-                text="请在插件设置中启用插件",
-                userid=event.event_data.get("user")
-            )
             return
 
+        event_data = event.event_data
+
+        # 获取URL
+        logger.info(f"接收到用户消息，获取中...")
+        url = event_data.get("text").strip()
+        logger.info(f"获取到内容： {url} ")
+        if not url.startswith(("http://", "https://", "ftp://", "magnet:", "ed2k://")):
+            logger.info(f"非离线URL，不进行处理")
+            return
+        
         if not all([self._115_cookie, self._115_path]):
             self.post_message(
                 channel=event.event_data.get("channel"),
-                title="配置项缺失",
+                title="115离线配置项缺失",
                 text="请检查 115 Cookie 和文件夹 CID 是否已配置",
-                userid=event.event_data.get("user")
-            )
-            return
-
-        # 获取命令参数（URL）
-        command_args = event_data.get("arg_str")
-        if not command_args:
-            self.post_message(
-                channel=event.event_data.get("channel"),
-                title="未提供下载URL",
-                text="请在命令中提供有效的下载 URL",
-                userid=event.event_data.get("user")
-            )
-            return
-
-        url = command_args.strip()
-        if not url.startswith(("http://", "https://", "ftp://", "magnet:", "ed2k://")):
-            self.post_message(
-                channel=event.event_data.get("channel"),
-                title="无效的URL",
-                text=f"提供的 URL 不支持: {url}",
                 userid=event.event_data.get("user")
             )
             return
