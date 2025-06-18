@@ -133,7 +133,7 @@ class OfflineDownload(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '输入 /offline_download <URL> 触发离线下载任务'
+                                            'text': '输入 /115 <URL> 触发离线下载任务'
                                         }
                                     }
                                 ]
