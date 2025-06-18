@@ -46,7 +46,7 @@ class OfflineDownload(_PluginBase):
         返回插件支持的命令列表
         """
         return [{
-            "cmd": "/offline_download",
+            "cmd": "/115",
             "event": EventType.PluginAction,
             "desc": "115离线下载",
             "category": "",
