@@ -41,7 +41,7 @@ class OfflineDownload(_PluginBase):
             self._115_path = config.get("115_path")
 
     @staticmethod
-    def get_command(self) -> List[Dict[str, Any]]:
+    def get_command() -> List[Dict[str, Any]]:
         """
         返回插件支持的命令列表
         """
