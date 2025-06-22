@@ -14,7 +14,7 @@ class OfflineDownload(_PluginBase):
     # 插件描述
     plugin_desc = "通过命令触发115网盘的离线下载任务。"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
+    plugin_icon = "softlink.png"
     # 插件版本
     plugin_version = "1.1"
     # 插件作者
@@ -40,6 +40,7 @@ class OfflineDownload(_PluginBase):
             self._115_cookie = config.get("115_cookie")
             self._115_path = config.get("115_path")
 
+    @staticmethod
     def get_command(self) -> List[Dict[str, Any]]:
         """
         返回插件支持的命令列表

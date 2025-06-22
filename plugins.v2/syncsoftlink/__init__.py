@@ -19,7 +19,7 @@ class SyncSoftLink(_PluginBase):
     # 插件描述
     plugin_desc = "对接115网盘，删除失效的软连接，添加新增的软连接。"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
+    plugin_icon = "softlink.png"
     # 插件版本
     plugin_version = "1.1"
     # 插件作者
