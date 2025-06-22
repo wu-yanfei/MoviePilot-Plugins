@@ -1,18 +1,10 @@
 import os
-import time
-import subprocess
-import sys
 import shutil
-import json
 from pathlib import Path
 from typing import List, Tuple, Dict, Any
 
-from app.core.context import MediaInfo
-from app.core.event import eventmanager, Event
 from app.log import logger
 from app.plugins import _PluginBase
-from app.schemas import TransferInfo, FileItem
-from app.schemas.types import EventType, MediaType
 from apscheduler.triggers.cron import CronTrigger
 
 from p115client import P115Client
@@ -29,7 +21,7 @@ class SyncSoftLink(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "wu-yanfei"
     # 作者主页
@@ -37,7 +29,7 @@ class SyncSoftLink(_PluginBase):
     # 插件配置项ID前缀
     plugin_config_prefix = "syncsoftlink_"
     # 加载顺序
-    plugin_order = 5
+    plugin_order = 7
     # 可使用的用户级别
     auth_level = 1
 

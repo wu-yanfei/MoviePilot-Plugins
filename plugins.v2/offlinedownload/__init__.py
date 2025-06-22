@@ -1,4 +1,3 @@
-import os
 import json
 from typing import List, Tuple, Dict, Any
 
@@ -17,7 +16,7 @@ class OfflineDownload(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wu-yanfei/MoviePilot-Plugins/main/icons/softlink.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "wu-yanfei"
     # 作者主页
@@ -25,7 +24,7 @@ class OfflineDownload(_PluginBase):
     # 插件配置项ID前缀
     plugin_config_prefix = "offlinedownload_"
     # 加载顺序
-    plugin_order = 5
+    plugin_order = 6
     # 可使用的用户级别
     auth_level = 1
 
